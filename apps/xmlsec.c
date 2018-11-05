@@ -435,6 +435,19 @@ static xmlSecAppCmdLineParam nodeIdParam = {
     NULL
 };    
 
+static xmlSecAppCmdLineParam sigNodeNameParam = { 
+    xmlSecAppCmdLineTopicDSigCommon | 
+    xmlSecAppCmdLineTopicEncCommon,
+    "--sig-node-name",
+    NULL,   
+    "--sig-node-name [<namespace-uri>:]<name>"
+    "\n\tspecify a different [<namespace-uri>:]<name>"
+    "\n\tother than 'dsig:Signature'",
+    xmlSecAppCmdLineParamTypeString,
+    xmlSecAppCmdLineParamFlagNone,
+    NULL
+};
+
 static xmlSecAppCmdLineParam nodeNameParam = { 
     xmlSecAppCmdLineTopicDSigCommon | 
     xmlSecAppCmdLineTopicEncCommon,
@@ -446,7 +459,7 @@ static xmlSecAppCmdLineParam nodeNameParam = {
     xmlSecAppCmdLineParamTypeString,
     xmlSecAppCmdLineParamFlagNone,
     NULL
-};    
+};
     
 static xmlSecAppCmdLineParam nodeXPathParam = { 
     xmlSecAppCmdLineTopicDSigCommon | 
@@ -801,6 +814,7 @@ static xmlSecAppCmdLineParamPtr parameters[] = {
     &storeSignaturesParam,
     &enabledRefUrisParam,
     &enableVisa3DHackParam,
+    &sigNodeNameParam,
 #endif /* XMLSEC_NO_XMLDSIG */
 
     /* enc params */
@@ -1294,6 +1308,7 @@ xmlSecAppVerifyFile(const char* filename) {
     xmlSecDSigCtx dsigCtx;
     clock_t start_time;
     int res = -1;
+    xmlChar *buf;
     
     if(filename == NULL) {
         return(-1);
@@ -1307,9 +1322,30 @@ xmlSecAppVerifyFile(const char* filename) {
         fprintf(stderr, "Error: dsig context preparation failed\n");
         goto done;
     }
-    
+
+    if(xmlSecAppCmdLineParamGetString(&sigNodeNameParam) != NULL) {
+
+        buf = xmlStrdup(BAD_CAST xmlSecAppCmdLineParamGetString(&sigNodeNameParam));
+        if(buf == NULL) {
+            fprintf(stderr, "Error: failed to duplicate node name \"%s\"\n", 
+                    xmlSecAppCmdLineParamGetString(&sigNodeNameParam));
+            return(-1);    
+        }
+
+        xmlChar *tmp;
+        tmp = (xmlChar*)strrchr((char*)buf, ':');
+        if(tmp != NULL) {
+            (*(tmp++)) = '\0';
+            dsigCtx.sigNodeName = tmp;
+            dsigCtx.sigNodeNs = buf;
+        } else {
+            dsigCtx.sigNodeName = buf;
+            dsigCtx.sigNodeNs = NULL;
+        }
+    }
+
     /* parse template and select start node */
-    data = xmlSecAppXmlDataCreate(filename, xmlSecNodeSignature, xmlSecDSigNs);
+    data = xmlSecAppXmlDataCreate(filename, dsigCtx.sigNodeName, dsigCtx.sigNodeNs);
     if(data == NULL) {
         fprintf(stderr, "Error: failed to load document \"%s\"\n", filename);
         goto done;
@@ -1321,6 +1357,8 @@ xmlSecAppVerifyFile(const char* filename) {
         fprintf(stderr,"Error: signature failed \n");
         goto done;
     }
+
+    xmlFree(buf);
     total_time += clock() - start_time;    
 
     if((repeats <= 1) && (dsigCtx.status != xmlSecDSigStatusSucceeded)){ 
@@ -1389,6 +1427,7 @@ done:
     if(data != NULL) {
         xmlSecAppXmlDataDestroy(data);
     }
+
     return(res);
 }
 
@@ -2593,7 +2632,7 @@ xmlSecAppXmlDataCreate(const char* filename, const xmlChar* defStartNodeName, co
     } else if(xmlSecAppCmdLineParamGetString(&nodeNameParam) != NULL) {
         xmlChar* name;
         xmlChar* ns;
-        
+
         buf = xmlStrdup(BAD_CAST xmlSecAppCmdLineParamGetString(&nodeNameParam));
         if(buf == NULL) {
             fprintf(stderr, "Error: failed to duplicate node \"%s\"\n", 

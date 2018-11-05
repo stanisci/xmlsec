@@ -121,6 +121,8 @@ typedef enum {
  *                              (valid only if #XMLSEC_DSIG_FLAGS_STORE_SIGNATURE flag is set).
  * @signValueNode:              the pointer to <dsig:SignatureValue/> node.
  * @id:                         the pointer to Id attribute of <dsig:Signature/> node.
+ * @sigNodeName                 name of the <dsig:Signature/> node; defaults to "Signature",
+ *                              but can be tuned by the user.
  * @signedInfoReferences:       the list of references in <dsig:SignedInfo/> node.
  * @manifestReferences:         the list of references in <dsig:Manifest/> nodes.
  * @reserved0:                  reserved for the future.
@@ -153,6 +155,8 @@ struct _xmlSecDSigCtx {
     xmlSecTransformPtr          preSignMemBufMethod;
     xmlNodePtr                  signValueNode;
     xmlChar*                    id;
+    const xmlChar*              sigNodeName;
+    const xmlChar*              sigNodeNs;
     xmlSecPtrList               signedInfoReferences;
     xmlSecPtrList               manifestReferences;
 

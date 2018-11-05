@@ -123,6 +123,11 @@ xmlSecDSigCtxInitialize(xmlSecDSigCtxPtr dsigCtx, xmlSecKeysMngrPtr keysMngr) {
 
     memset(dsigCtx, 0, sizeof(xmlSecDSigCtx));
 
+
+    /* Use default "Signature" name and namespace */
+    dsigCtx->sigNodeName = xmlSecNodeSignature;
+    dsigCtx->sigNodeNs = xmlSecDSigNs;
+
     /* initialize key info */
     ret = xmlSecKeyInfoCtxInitialize(&(dsigCtx->keyInfoReadCtx), keysMngr);
     if(ret < 0) {
@@ -438,8 +443,8 @@ xmlSecDSigCtxProcessSignatureNode(xmlSecDSigCtxPtr dsigCtx, xmlNodePtr node) {
     xmlSecAssert2(dsigCtx->c14nMethod == NULL, -1);
     xmlSecAssert2(node != NULL, -1);
 
-    if(!xmlSecCheckNodeName(node, xmlSecNodeSignature, xmlSecDSigNs)) {
-        xmlSecInvalidNodeError(node, xmlSecNodeSignature, NULL);
+    if(!xmlSecCheckNodeName(node, dsigCtx->sigNodeName, dsigCtx->sigNodeNs)) {
+        xmlSecInvalidNodeError(node, dsigCtx->sigNodeName, NULL);
         return(-1);
     }
 
